@@ -46,3 +46,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Non-mobile platforms (this is a mobile-only project)
+/linux/
+/macos/
+/windows/
+/web/
