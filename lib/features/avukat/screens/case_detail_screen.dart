@@ -37,6 +37,12 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
             createdAt: _case.createdAt,
             updatedAt: DateTime.now(),
             clientName: _case.clientName,
+            caseType: _case.caseType,
+            courtName: _case.courtName,
+            courtCaseNumber: _case.courtCaseNumber,
+            opposingParty: _case.opposingParty,
+            caseValue: _case.caseValue,
+            nextHearingDate: _case.nextHearingDate,
           ));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -159,15 +165,30 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
                     ),
                     const Divider(height: 20),
                     _InfoRow(icon: Icons.tag, label: 'Dosya No', value: _case.caseNumber),
+                    if (_case.caseType != null)
+                      _InfoRow(icon: Icons.category_outlined, label: 'Dava Türü', value: _case.caseType!),
                     if (_case.clientName != null)
-                      _InfoRow(
-                          icon: Icons.person,
-                          label: 'Müvekkil',
-                          value: _case.clientName!),
+                      _InfoRow(icon: Icons.person, label: 'Müvekkil', value: _case.clientName!),
+                    if (_case.opposingParty != null)
+                      _InfoRow(icon: Icons.person_off_outlined, label: 'Karşı Taraf', value: _case.opposingParty!),
+                    if (_case.courtName != null)
+                      _InfoRow(icon: Icons.gavel, label: 'Mahkeme', value: _case.courtName!),
+                    if (_case.courtCaseNumber != null)
+                      _InfoRow(icon: Icons.numbers, label: 'Esas No', value: _case.courtCaseNumber!),
                     _InfoRow(
                         icon: Icons.calendar_today,
                         label: 'Açılış Tarihi',
                         value: DateFormatter.formatDate(_case.createdAt)),
+                    if (_case.nextHearingDate != null)
+                      _InfoRow(
+                          icon: Icons.event,
+                          label: 'Sonraki Duruşma',
+                          value: DateFormatter.formatDate(_case.nextHearingDate!)),
+                    if (_case.caseValue != null)
+                      _InfoRow(
+                          icon: Icons.attach_money,
+                          label: 'Dava Değeri',
+                          value: '${_case.caseValue!.toStringAsFixed(2)} TL'),
                     if (_case.description.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       const Text('Açıklama',

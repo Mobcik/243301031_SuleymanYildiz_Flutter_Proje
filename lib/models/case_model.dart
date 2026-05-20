@@ -70,7 +70,9 @@ class CaseModel {
           ? DateTime.parse(map['next_hearing_date'] as String)
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'] as String)
+          : DateTime.now(),
       clientName: map['client_name'] as String?,
       lawyerName: map['lawyer_name'] as String?,
     );
