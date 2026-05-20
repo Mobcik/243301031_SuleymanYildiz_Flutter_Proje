@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../core/constants/app_colors.dart';
@@ -59,7 +60,17 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => screen),
       );
     } catch (e) {
-      setState(() => _errorMessage = 'E-posta veya şifre hatalı');
+      String msg = 'E-posta veya şifre hatalı';
+      if (e is AuthException) {
+        if (e.message.toLowerCase().contains('invalid') ||
+            e.message.toLowerCase().contains('credentials') ||
+            e.message.toLowerCase().contains('password')) {
+          msg = 'E-posta veya şifre hatalı';
+        } else {
+          msg = 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+        }
+      }
+      setState(() => _errorMessage = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

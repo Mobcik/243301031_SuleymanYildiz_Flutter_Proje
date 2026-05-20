@@ -40,13 +40,18 @@ class AuthService {
       password: password,
     );
 
-    if (response.user == null) throw Exception('Giriş başarısız');
+    final user = response.user;
+    if (user == null) throw Exception('Giriş başarısız');
 
-    final profile = await getCurrentProfile();
-    if (profile == null) throw Exception('Kullanıcı profili bulunamadı');
+    // response.user.id kullan — currentUser getter bazen gecikmeli güncellenir
+    final profileData = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .single();
 
     await _logService.log('Giriş yapıldı', details: 'E-posta: $email');
-    return profile;
+    return UserProfile.fromMap(profileData as Map<String, dynamic>);
   }
 
   /// Yeni kullanıcı kaydı oluşturur

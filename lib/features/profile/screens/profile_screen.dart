@@ -25,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadLogs() async {
     try {
-      final logs = await _logService.getLogs();
+      final logs = await _logService.getMyLogs();
       setState(() => _logs = logs);
     } catch (_) {
     } finally {
