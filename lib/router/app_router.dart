@@ -8,6 +8,7 @@ import '../features/avukat/screens/expense_form_screen.dart';
 import '../features/muvekkil/screens/home_screen.dart';
 import '../features/muvekkil/screens/case_detail_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
+import '../models/case_model.dart';
 
 /// Uygulama genelinde tüm navigasyon işlemlerini yöneten sınıf
 class AppRouter {
@@ -43,10 +44,10 @@ class AppRouter {
   }
 
   /// Avukat dosya detay ekranına yönlendirir
-  static void goToAvukatCaseDetail(BuildContext context, String caseId) {
+  static void goToAvukatCaseDetail(BuildContext context, CaseModel caseModel) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AvukatCaseDetailScreen(caseId: caseId),
+        builder: (_) => CaseDetailScreen(caseModel: caseModel),
       ),
     );
   }

@@ -98,8 +98,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         sicilNo: _isLawyer ? _sicilController.text.trim() : null,
         uzmanlikAlani: _isLawyer ? _selectedUzmanlik : null,
         baroAdi: _isLawyer ? _selectedBaro : null,
-        tcKimlik: !_isLawyer ? _tcController.text.trim() : null,
-        birthDate: !_isLawyer ? _birthDate : null,
+        tcKimlik: _tcController.text.trim().isEmpty ? null : _tcController.text.trim(),
+        birthDate: _birthDate,
         address: !_isLawyer && _addressController.text.trim().isNotEmpty
             ? _addressController.text.trim()
             : null,
@@ -117,8 +117,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         (route) => false,
       );
     } catch (e) {
-      setState(
-          () => _errorMessage = 'Kayıt başarısız. E-posta kullanımda olabilir.');
+      setState(() => _errorMessage = e.toString().contains('already registered')
+          ? 'Bu e-posta zaten kayıtlı'
+          : 'Kayıt başarısız: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -212,6 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               _sicilController.clear();
                               _selectedUzmanlik = null;
                               _selectedBaro = null;
+                              // TC kimlik ve doğum tarihi ortak alan, temizlenmiyor
                             }),
                           ),
                         ),
@@ -224,8 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             selected: _isLawyer,
                             onTap: () => setState(() {
                               _selectedRole = AppStrings.roleAvukat;
-                              _tcController.clear();
-                              _birthDate = null;
+                              // TC kimlik ve doğum tarihi ortak alan, temizlenmiyor
                               _addressController.clear();
                             }),
                           ),
@@ -234,9 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Kişisel Bilgiler
-                    _SectionTitle(title: 'Kişisel Bilgiler'),
-                    const SizedBox(height: 10),
+                    // Kişisel bilgiler kartı
                     Card(
                       elevation: 2,
                       shadowColor: AppColors.primary.withOpacity(0.1),
@@ -271,15 +270,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 return null;
                               },
                             ),
+                            const SizedBox(height: 12),
+                            // TC Kimlik — her iki rol için
+                            TextFormField(
+                              controller: _tcController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 11,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              decoration:
+                                  _inputDec('TC Kimlik Numarası', Icons.credit_card)
+                                      .copyWith(counterText: ''),
+                              validator: TcKimlikValidator.validate,
+                            ),
+                            const SizedBox(height: 12),
+                            // Doğum tarihi — her iki rol için
+                            GestureDetector(
+                              onTap: _pickBirthDate,
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  decoration:
+                                      _inputDec('Doğum Tarihi', Icons.cake_outlined)
+                                          .copyWith(
+                                    hintText: 'Seçmek için tıklayın',
+                                    suffixIcon: const Icon(
+                                        Icons.calendar_today, size: 18),
+                                  ),
+                                  controller: TextEditingController(
+                                    text: _birthDate != null
+                                        ? '${_birthDate!.day.toString().padLeft(2, '0')}.${_birthDate!.month.toString().padLeft(2, '0')}.${_birthDate!.year}'
+                                        : '',
+                                  ),
+                                  validator: (_) => _birthDate == null
+                                      ? 'Doğum tarihi seçiniz'
+                                      : null,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Hesap Bilgileri
-                    _SectionTitle(title: 'Hesap Bilgileri'),
-                    const SizedBox(height: 10),
+                    // Hesap bilgileri kartı
                     Card(
                       elevation: 2,
                       shadowColor: AppColors.primary.withOpacity(0.1),
@@ -326,11 +361,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
 
                     // Avukat özel alanlar
-                    if (_isLawyer) ...[
-                      _SectionTitle(
-                          title: 'Avukat Bilgileri',
-                          color: AppColors.accent),
-                      const SizedBox(height: 10),
+                    if (_isLawyer)
                       Card(
                         elevation: 2,
                         shape: RoundedRectangleBorder(
@@ -339,7 +370,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             children: [
-                              // Baro sicil no
                               TextFormField(
                                 controller: _sicilController,
                                 keyboardType: TextInputType.number,
@@ -355,15 +385,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 validator: SicilValidator.validate,
                               ),
                               const SizedBox(height: 12),
-
-                              // Baro adı dropdown
                               DropdownButtonFormField<String>(
                                 value: _selectedBaro,
-                                decoration: _inputDec('Baro', Icons.account_balance_outlined,
+                                decoration: _inputDec('Baro',
+                                    Icons.account_balance_outlined,
                                     iconColor: AppColors.accent),
                                 items: AppData.barolar
                                     .map((b) => DropdownMenuItem(
-                                        value: b, child: Text(b, style: const TextStyle(fontSize: 14))))
+                                        value: b,
+                                        child: Text(b,
+                                            style: const TextStyle(
+                                                fontSize: 14))))
                                     .toList(),
                                 onChanged: (v) =>
                                     setState(() => _selectedBaro = v),
@@ -371,16 +403,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     v == null ? 'Baro seçiniz' : null,
                               ),
                               const SizedBox(height: 12),
-
-                              // Uzmanlık alanı dropdown
                               DropdownButtonFormField<String>(
                                 value: _selectedUzmanlik,
-                                decoration: _inputDec(
-                                    'Uzmanlık Alanı', Icons.work_outlined,
+                                decoration: _inputDec('Uzmanlık Alanı',
+                                    Icons.work_outlined,
                                     iconColor: AppColors.accent),
                                 items: AppData.uzmanlikAlanlari
                                     .map((u) => DropdownMenuItem(
-                                        value: u, child: Text(u, style: const TextStyle(fontSize: 14))))
+                                        value: u,
+                                        child: Text(u,
+                                            style: const TextStyle(
+                                                fontSize: 14))))
                                     .toList(),
                                 onChanged: (v) =>
                                     setState(() => _selectedUzmanlik = v),
@@ -391,75 +424,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                       ),
-                    ],
 
-                    // Müvekkil özel alanlar
-                    if (!_isLawyer) ...[
-                      _SectionTitle(title: 'Kimlik Bilgileri'),
-                      const SizedBox(height: 10),
+                    // Müvekkil özel alan — sadece adres
+                    if (!_isLawyer)
                       Card(
                         elevation: 2,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16)),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              // TC Kimlik
-                              TextFormField(
-                                controller: _tcController,
-                                keyboardType: TextInputType.number,
-                                maxLength: 11,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly
-                                ],
-                                decoration:
-                                    _inputDec('TC Kimlik Numarası', Icons.credit_card)
-                                        .copyWith(counterText: ''),
-                                validator: TcKimlikValidator.validate,
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Doğum tarihi
-                              GestureDetector(
-                                onTap: _pickBirthDate,
-                                child: AbsorbPointer(
-                                  child: TextFormField(
-                                    decoration: _inputDec(
-                                            'Doğum Tarihi',
-                                            Icons.cake_outlined)
-                                        .copyWith(
-                                      hintText: 'Seçmek için tıklayın',
-                                      suffixIcon: const Icon(
-                                          Icons.calendar_today,
-                                          size: 18),
-                                    ),
-                                    controller: TextEditingController(
-                                      text: _birthDate != null
-                                          ? '${_birthDate!.day.toString().padLeft(2, '0')}.${_birthDate!.month.toString().padLeft(2, '0')}.${_birthDate!.year}'
-                                          : '',
-                                    ),
-                                    validator: (_) => _birthDate == null
-                                        ? 'Doğum tarihi seçiniz'
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Adres
-                              TextFormField(
-                                controller: _addressController,
-                                maxLines: 2,
-                                decoration: _inputDec(
-                                    'Adres (opsiyonel)',
-                                    Icons.location_on_outlined),
-                              ),
-                            ],
+                          child: TextFormField(
+                            controller: _addressController,
+                            maxLines: 2,
+                            decoration: _inputDec(
+                                'Adres (opsiyonel)',
+                                Icons.location_on_outlined),
                           ),
                         ),
                       ),
-                    ],
 
                     // Hata mesajı
                     if (_errorMessage != null) ...[
@@ -534,33 +516,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final Color color;
-  const _SectionTitle(
-      {required this.title, this.color = AppColors.textPrimary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(title,
-            style: TextStyle(
-                fontWeight: FontWeight.w600, color: color, fontSize: 14)),
-      ],
     );
   }
 }
