@@ -132,7 +132,7 @@ class _MuvekkilHomeScreenState extends State<MuvekkilHomeScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => MuvekkilCaseDetailScreen(
-                                    caseId: _cases[i].id),
+                                    caseModel: _cases[i]),
                               ),
                             ),
                           ),

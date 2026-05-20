@@ -6,8 +6,10 @@ import '../../../layouts/avukat_layout.dart';
 import '../../../models/case_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/case_service.dart';
+import '../../../services/request_service.dart';
 import 'case_detail_screen.dart';
 import 'case_form_screen.dart';
+import 'talepler_screen.dart';
 
 class AvukatHomeScreen extends StatefulWidget {
   const AvukatHomeScreen({super.key});
@@ -18,10 +20,12 @@ class AvukatHomeScreen extends StatefulWidget {
 
 class _AvukatHomeScreenState extends State<AvukatHomeScreen> {
   final _caseService = CaseService();
+  final _requestService = RequestService();
   List<CaseModel> _cases = [];
   List<CaseModel> _filtered = [];
   bool _loading = true;
   String _selectedStatus = 'hepsi';
+  int _pendingRequests = 0;
 
   @override
   void initState() {
@@ -35,11 +39,17 @@ class _AvukatHomeScreenState extends State<AvukatHomeScreen> {
 
     setState(() => _loading = true);
     try {
-      final cases = await _caseService.getLawyerCases(lawyerId);
-      setState(() {
-        _cases = cases;
-        _applyFilter();
-      });
+      final results = await Future.wait([
+        _caseService.getLawyerCases(lawyerId),
+        _requestService.getPendingCount(lawyerId),
+      ]);
+      if (mounted) {
+        setState(() {
+          _cases = results[0] as List<CaseModel>;
+          _pendingRequests = results[1] as int;
+          _applyFilter();
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,6 +75,46 @@ class _AvukatHomeScreenState extends State<AvukatHomeScreen> {
 
     return AvukatLayout(
       title: 'Davalarım',
+      actions: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.people_outlined),
+              tooltip: 'Müvekkil Talepleri',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TaleplerScreen()),
+                );
+                _loadCases();
+              },
+            ),
+            if (_pendingRequests > 0)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$_pendingRequests',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await Navigator.push(

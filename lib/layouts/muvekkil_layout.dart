@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
+import '../features/muvekkil/screens/avukat_listesi_screen.dart';
 
 /// Müvekkil rolü için ortak ekran iskeleti (AppBar + Drawer)
 class MuvekkilLayout extends StatelessWidget {
@@ -82,6 +83,17 @@ class MuvekkilLayout extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 AppRouter.goToMuvekkilHome(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('Avukat Bul'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AvukatListesiScreen()),
+                );
               },
             ),
             ListTile(

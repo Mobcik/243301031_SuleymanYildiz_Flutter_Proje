@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
+import '../features/avukat/screens/talepler_screen.dart';
 
 /// Avukat rolü için ortak ekran iskeleti (AppBar + Drawer)
 class AvukatLayout extends StatelessWidget {
@@ -84,6 +85,17 @@ class AvukatLayout extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 AppRouter.goToAvukatHome(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outlined),
+              title: const Text('Müvekkil Talepleri'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TaleplerScreen()),
+                );
               },
             ),
             ListTile(

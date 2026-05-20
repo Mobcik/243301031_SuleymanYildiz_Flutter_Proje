@@ -53,10 +53,10 @@ class AppRouter {
   }
 
   /// Müvekkil dosya detay ekranına yönlendirir
-  static void goToMuvekkilCaseDetail(BuildContext context, String caseId) {
+  static void goToMuvekkilCaseDetail(BuildContext context, CaseModel caseModel) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => MuvekkilCaseDetailScreen(caseId: caseId),
+        builder: (_) => MuvekkilCaseDetailScreen(caseModel: caseModel),
       ),
     );
   }
