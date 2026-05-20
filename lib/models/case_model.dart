@@ -5,7 +5,13 @@ class CaseModel {
   final String description;
   final String clientId;
   final String lawyerId;
-  final String status; // 'aktif', 'beklemede', 'kapalı'
+  final String status;
+  final String? caseType;
+  final String? courtName;
+  final String? courtCaseNumber;
+  final String? opposingParty;
+  final double? caseValue;
+  final DateTime? nextHearingDate;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? clientName;
@@ -19,6 +25,12 @@ class CaseModel {
     required this.clientId,
     required this.lawyerId,
     required this.status,
+    this.caseType,
+    this.courtName,
+    this.courtCaseNumber,
+    this.opposingParty,
+    this.caseValue,
+    this.nextHearingDate,
     required this.createdAt,
     required this.updatedAt,
     this.clientName,
@@ -47,6 +59,16 @@ class CaseModel {
       clientId: map['client_id'] as String,
       lawyerId: map['lawyer_id'] as String,
       status: map['status'] as String,
+      caseType: map['case_type'] as String?,
+      courtName: map['court_name'] as String?,
+      courtCaseNumber: map['court_case_number'] as String?,
+      opposingParty: map['opposing_party'] as String?,
+      caseValue: map['case_value'] != null
+          ? (map['case_value'] as num).toDouble()
+          : null,
+      nextHearingDate: map['next_hearing_date'] != null
+          ? DateTime.parse(map['next_hearing_date'] as String)
+          : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
       clientName: map['client_name'] as String?,
@@ -62,6 +84,13 @@ class CaseModel {
       'client_id': clientId,
       'lawyer_id': lawyerId,
       'status': status,
+      if (caseType != null) 'case_type': caseType,
+      if (courtName != null) 'court_name': courtName,
+      if (courtCaseNumber != null) 'court_case_number': courtCaseNumber,
+      if (opposingParty != null) 'opposing_party': opposingParty,
+      if (caseValue != null) 'case_value': caseValue,
+      if (nextHearingDate != null)
+        'next_hearing_date': nextHearingDate!.toIso8601String().split('T')[0],
     };
   }
 }

@@ -45,6 +45,13 @@ class CaseService {
     required String description,
     required String clientId,
     required String lawyerId,
+    String? caseType,
+    String? courtName,
+    String? courtCaseNumber,
+    String? opposingParty,
+    double? caseValue,
+    DateTime? nextHearingDate,
+    DateTime? openingDate,
   }) async {
     final response = await _supabase.from('cases').insert({
       'case_number': caseNumber,
@@ -53,9 +60,18 @@ class CaseService {
       'client_id': clientId,
       'lawyer_id': lawyerId,
       'status': 'aktif',
+      if (caseType != null) 'case_type': caseType,
+      if (courtName != null) 'court_name': courtName,
+      if (courtCaseNumber != null) 'court_case_number': courtCaseNumber,
+      if (opposingParty != null) 'opposing_party': opposingParty,
+      if (caseValue != null) 'case_value': caseValue,
+      if (nextHearingDate != null)
+        'next_hearing_date': nextHearingDate.toIso8601String().split('T')[0],
+      if (openingDate != null)
+        'created_at': openingDate.toIso8601String(),
     }).select().single();
 
-    await _logService.log('Dava oluşturuldu', details: 'Dosya No: $caseNumber');
+    await _logService.log('Dava olusturuldu', details: 'Dosya No: $caseNumber');
     return CaseModel.fromMap(response as Map<String, dynamic>);
   }
 
