@@ -71,8 +71,11 @@ Avukatların müvekkil dosyalarını, duruşma takvimlerini ve masraflarını di
 
 ## Ekran Görüntüleri
 
-### Giriş & Kayıt
+### Giriş Ekranı
 ![login](screenshots/login.png)
+
+### Kayıt Ekranı
+![register](screenshots/register.png)
 
 ### Avukat Ana Ekran
 ![avukat_home](screenshots/avukat_home.png)
@@ -83,11 +86,14 @@ Avukatların müvekkil dosyalarını, duruşma takvimlerini ve masraflarını di
 ### Dava Oluşturma Formu
 ![case_form](screenshots/case_form.png)
 
-### Duruşma Takvimi
-![durusmalar](screenshots/durusmalar.png)
-
-### Müvekkil Ekranı
+### Müvekkil Ekranı & Profil
 ![muvekkil](screenshots/muvekkil.png)
+
+### Avukat Arama
+![avukat_bul](screenshots/avukat_bul.png)
+
+### Profil Ekranı
+![profile](screenshots/profile.png)
 
 ---
 
