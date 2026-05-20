@@ -6,6 +6,7 @@ import '../../../models/expense_model.dart';
 import '../../../services/case_service.dart';
 import '../../../services/expense_service.dart';
 import 'expense_form_screen.dart';
+import 'case_form_screen.dart';
 
 class CaseDetailScreen extends StatefulWidget {
   final CaseModel caseModel;
@@ -83,6 +84,14 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
     }
   }
 
+  Future<void> _editCase() async {
+    final updated = await Navigator.push<CaseModel>(
+      context,
+      MaterialPageRoute(builder: (_) => CaseFormScreen(existingCase: _case)),
+    );
+    if (updated != null && mounted) setState(() => _case = updated);
+  }
+
   Future<void> _deleteCase() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -145,8 +154,24 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
             actions: [
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
-                onSelected: (v) => v == 'sil' ? _deleteCase() : _changeStatus(v),
+                onSelected: (v) {
+                  if (v == 'sil') {
+                    _deleteCase();
+                  } else if (v == 'duzenle') {
+                    _editCase();
+                  } else {
+                    _changeStatus(v);
+                  }
+                },
                 itemBuilder: (_) => [
+                  const PopupMenuItem(
+                      value: 'duzenle',
+                      child: Row(children: [
+                        Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
+                        SizedBox(width: 8),
+                        Text('Davayı Düzenle'),
+                      ])),
+                  const PopupMenuDivider(),
                   if (c.status != 'aktif')
                     const PopupMenuItem(value: 'aktif', child: Text('Aktif Yap')),
                   if (c.status != 'beklemede')

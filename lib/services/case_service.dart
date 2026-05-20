@@ -75,6 +75,50 @@ class CaseService {
     return CaseModel.fromMap(response as Map<String, dynamic>);
   }
 
+  /// Dava bilgilerini günceller
+  Future<CaseModel> updateCase({
+    required String caseId,
+    required String title,
+    required String description,
+    String? caseType,
+    String? courtName,
+    String? courtCaseNumber,
+    String? opposingParty,
+    double? caseValue,
+    DateTime? nextHearingDate,
+  }) async {
+    final response = await _supabase.from('cases').update({
+      'title': title,
+      'description': description,
+      'updated_at': DateTime.now().toIso8601String(),
+      if (caseType != null) 'case_type': caseType,
+      'court_name': courtName,
+      'court_case_number': courtCaseNumber,
+      'opposing_party': opposingParty,
+      'case_value': caseValue,
+      'next_hearing_date': nextHearingDate != null
+          ? nextHearingDate.toIso8601String().split('T')[0]
+          : null,
+    }).eq('id', caseId).select().single();
+
+    await _logService.log('Dava guncellendi', details: title);
+    return CaseModel.fromMap(response as Map<String, dynamic>);
+  }
+
+  /// Tek davayı getirir (müvekkil + avukat bilgisiyle)
+  Future<CaseModel> getCaseById(String caseId) async {
+    final response = await _supabase
+        .from('cases')
+        .select('*, profiles!cases_client_id_fkey(full_name)')
+        .eq('id', caseId)
+        .single();
+
+    final map = Map<String, dynamic>.from(response as Map);
+    final client = map['profiles'] as Map?;
+    map['client_name'] = client?['full_name'];
+    return CaseModel.fromMap(map);
+  }
+
   /// Dava durumunu günceller
   Future<void> updateStatus(String caseId, String status) async {
     await _supabase

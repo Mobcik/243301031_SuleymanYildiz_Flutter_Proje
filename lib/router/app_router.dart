@@ -61,11 +61,11 @@ class AppRouter {
     );
   }
 
-  /// Dosya ekleme/düzenleme formuna yönlendirir
-  static void goToCaseForm(BuildContext context, {String? caseId}) {
+  /// Dosya ekleme formuna yönlendirir
+  static void goToCaseForm(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CaseFormScreen(caseId: caseId),
+        builder: (_) => const CaseFormScreen(),
       ),
     );
   }
