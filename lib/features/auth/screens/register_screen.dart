@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/constants/app_data.dart';
+import '../../../core/utils/sicil_validator.dart';
+import '../../../core/utils/tc_kimlik_validator.dart';
 import '../../avukat/screens/home_screen.dart';
 import '../../muvekkil/screens/home_screen.dart';
 
-/// Yeni kullanıcı kayıt ekranı
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -17,27 +20,66 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
+
+  // Ortak alanlar
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  final _phoneController = TextEditingController();
+
+  // Avukat alanları
+  final _sicilController = TextEditingController();
+  String? _selectedUzmanlik;
+  String? _selectedBaro;
+
+  // Müvekkil alanları
+  final _tcController = TextEditingController();
+  final _addressController = TextEditingController();
+  DateTime? _birthDate;
 
   bool _loading = false;
   bool _passwordVisible = false;
   String _selectedRole = AppStrings.roleMuvekkil;
   String? _errorMessage;
 
+  bool get _isLawyer => _selectedRole == AppStrings.roleAvukat;
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
+    _sicilController.dispose();
+    _tcController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
-  /// Kayıt işlemini gerçekleştirir
+  Future<void> _pickBirthDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(1990),
+      firstDate: DateTime(1930),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      helpText: 'Doğum Tarihi Seçin',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isLawyer && (_selectedUzmanlik == null || _selectedBaro == null)) {
+      setState(() => _errorMessage = 'Lütfen uzmanlık alanı ve baro seçin');
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -50,132 +92,127 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
         role: _selectedRole,
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
+        sicilNo: _isLawyer ? _sicilController.text.trim() : null,
+        uzmanlikAlani: _isLawyer ? _selectedUzmanlik : null,
+        baroAdi: _isLawyer ? _selectedBaro : null,
+        tcKimlik: !_isLawyer ? _tcController.text.trim() : null,
+        birthDate: !_isLawyer ? _birthDate : null,
+        address: !_isLawyer && _addressController.text.trim().isNotEmpty
+            ? _addressController.text.trim()
+            : null,
       );
 
       if (!mounted) return;
-
       context.read<AuthProvider>().setProfile(profile);
 
-      // Role göre yönlendir
-      final screen = profile.isLawyer
-          ? const AvukatHomeScreen()
-          : const MuvekkilHomeScreen();
-
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => screen),
+        MaterialPageRoute(
+          builder: (_) => profile.isLawyer
+              ? const AvukatHomeScreen()
+              : const MuvekkilHomeScreen(),
+        ),
         (route) => false,
       );
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Kayıt başarısız. E-posta zaten kullanımda olabilir.';
-      });
+      setState(
+          () => _errorMessage = 'Kayıt başarısız. E-posta kullanımda olabilir.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  InputDecoration _inputDec(String label, IconData icon, {Color? iconColor}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: iconColor ?? AppColors.primaryLight),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:
+            BorderSide(color: iconColor ?? AppColors.primaryLight, width: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Kayıt Ol'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      body: Column(
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 56, bottom: 28),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.gradientStart, AppColors.gradientEnd],
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: AppColors.accent.withOpacity(0.7), width: 2),
+                  ),
+                  child: const Icon(Icons.person_add,
+                      size: 34, color: AppColors.accent),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Hesap Oluştur',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Yeni Hesap Oluştur',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Ad soyad alanı
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Ad Soyad',
-                        prefixIcon: Icon(Icons.person_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) =>
-                          v!.isEmpty ? 'Ad soyad giriniz' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // E-posta alanı
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-posta',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) =>
-                          v!.isEmpty ? 'E-posta giriniz' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Şifre alanı
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: !_passwordVisible,
-                      decoration: InputDecoration(
-                        labelText: 'Şifre',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(_passwordVisible
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: () => setState(
-                              () => _passwordVisible = !_passwordVisible),
-                        ),
-                      ),
-                      validator: (v) => v!.length < 6
-                          ? 'Şifre en az 6 karakter olmalı'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-
                     // Rol seçimi
-                    const Text(
-                      'Rol Seçin',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: _RoleCard(
                             label: 'Müvekkil',
                             icon: Icons.person,
-                            selected:
-                                _selectedRole == AppStrings.roleMuvekkil,
-                            onTap: () => setState(
-                                () => _selectedRole = AppStrings.roleMuvekkil),
+                            description: 'Dosyalarımı takip et',
+                            selected: !_isLawyer,
+                            onTap: () => setState(() {
+                              _selectedRole = AppStrings.roleMuvekkil;
+                              _sicilController.clear();
+                              _selectedUzmanlik = null;
+                              _selectedBaro = null;
+                            }),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -183,78 +220,361 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: _RoleCard(
                             label: 'Avukat',
                             icon: Icons.gavel,
-                            selected:
-                                _selectedRole == AppStrings.roleAvukat,
-                            onTap: () => setState(
-                                () => _selectedRole = AppStrings.roleAvukat),
+                            description: 'Davaları yönet',
+                            selected: _isLawyer,
+                            onTap: () => setState(() {
+                              _selectedRole = AppStrings.roleAvukat;
+                              _tcController.clear();
+                              _birthDate = null;
+                              _addressController.clear();
+                            }),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Hata mesajı
-                    if (_errorMessage != null)
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: AppColors.error),
-                          textAlign: TextAlign.center,
+                    // Kişisel Bilgiler
+                    _SectionTitle(title: 'Kişisel Bilgiler'),
+                    const SizedBox(height: 10),
+                    Card(
+                      elevation: 2,
+                      shadowColor: AppColors.primary.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _nameController,
+                              decoration:
+                                  _inputDec('Ad Soyad', Icons.person_outlined),
+                              validator: (v) =>
+                                  v!.isEmpty ? 'Ad soyad giriniz' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              maxLength: 11,
+                              decoration: _inputDec(
+                                      'Telefon (05XX...)', Icons.phone_outlined)
+                                  .copyWith(counterText: ''),
+                              validator: (v) {
+                                if (v!.isEmpty) return null;
+                                if (v.length != 11 || !v.startsWith('0'))
+                                  return 'Geçerli telefon giriniz (05XX...)';
+                                return null;
+                              },
+                            ),
+                          ],
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Hesap Bilgileri
+                    _SectionTitle(title: 'Hesap Bilgileri'),
+                    const SizedBox(height: 10),
+                    Card(
+                      elevation: 2,
+                      shadowColor: AppColors.primary.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration:
+                                  _inputDec('E-posta', Icons.email_outlined),
+                              validator: (v) =>
+                                  v!.isEmpty ? 'E-posta giriniz' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: !_passwordVisible,
+                              decoration:
+                                  _inputDec('Şifre', Icons.lock_outlined)
+                                      .copyWith(
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _passwordVisible
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  onPressed: () => setState(() =>
+                                      _passwordVisible = !_passwordVisible),
+                                ),
+                              ),
+                              validator: (v) => v!.length < 6
+                                  ? 'En az 6 karakter olmalı'
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Avukat özel alanlar
+                    if (_isLawyer) ...[
+                      _SectionTitle(
+                          title: 'Avukat Bilgileri',
+                          color: AppColors.accent),
+                      const SizedBox(height: 10),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              // Baro sicil no
+                              TextFormField(
+                                controller: _sicilController,
+                                keyboardType: TextInputType.number,
+                                maxLength: 5,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
+                                decoration:
+                                    _inputDec('Baro Sicil Numarası (5 hane)',
+                                            Icons.badge_outlined,
+                                            iconColor: AppColors.accent)
+                                        .copyWith(counterText: ''),
+                                validator: SicilValidator.validate,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Baro adı dropdown
+                              DropdownButtonFormField<String>(
+                                value: _selectedBaro,
+                                decoration: _inputDec('Baro', Icons.account_balance_outlined,
+                                    iconColor: AppColors.accent),
+                                items: AppData.barolar
+                                    .map((b) => DropdownMenuItem(
+                                        value: b, child: Text(b, style: const TextStyle(fontSize: 14))))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => _selectedBaro = v),
+                                validator: (v) =>
+                                    v == null ? 'Baro seçiniz' : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Uzmanlık alanı dropdown
+                              DropdownButtonFormField<String>(
+                                value: _selectedUzmanlik,
+                                decoration: _inputDec(
+                                    'Uzmanlık Alanı', Icons.work_outlined,
+                                    iconColor: AppColors.accent),
+                                items: AppData.uzmanlikAlanlari
+                                    .map((u) => DropdownMenuItem(
+                                        value: u, child: Text(u, style: const TextStyle(fontSize: 14))))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => _selectedUzmanlik = v),
+                                validator: (v) =>
+                                    v == null ? 'Uzmanlık alanı seçiniz' : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // Müvekkil özel alanlar
+                    if (!_isLawyer) ...[
+                      _SectionTitle(title: 'Kimlik Bilgileri'),
+                      const SizedBox(height: 10),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              // TC Kimlik
+                              TextFormField(
+                                controller: _tcController,
+                                keyboardType: TextInputType.number,
+                                maxLength: 11,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
+                                decoration:
+                                    _inputDec('TC Kimlik Numarası', Icons.credit_card)
+                                        .copyWith(counterText: ''),
+                                validator: TcKimlikValidator.validate,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Doğum tarihi
+                              GestureDetector(
+                                onTap: _pickBirthDate,
+                                child: AbsorbPointer(
+                                  child: TextFormField(
+                                    decoration: _inputDec(
+                                            'Doğum Tarihi',
+                                            Icons.cake_outlined)
+                                        .copyWith(
+                                      hintText: 'Seçmek için tıklayın',
+                                      suffixIcon: const Icon(
+                                          Icons.calendar_today,
+                                          size: 18),
+                                    ),
+                                    controller: TextEditingController(
+                                      text: _birthDate != null
+                                          ? '${_birthDate!.day.toString().padLeft(2, '0')}.${_birthDate!.month.toString().padLeft(2, '0')}.${_birthDate!.year}'
+                                          : '',
+                                    ),
+                                    validator: (_) => _birthDate == null
+                                        ? 'Doğum tarihi seçiniz'
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Adres
+                              TextFormField(
+                                controller: _addressController,
+                                maxLines: 2,
+                                decoration: _inputDec(
+                                    'Adres (opsiyonel)',
+                                    Icons.location_on_outlined),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // Hata mesajı
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border:
+                              Border.all(color: AppColors.error.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: AppColors.error, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(_errorMessage!,
+                                  style: const TextStyle(
+                                      color: AppColors.error, fontSize: 13)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 20),
 
-                    // Kayıt butonu
                     ElevatedButton(
                       onPressed: _loading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 2,
                       ),
                       child: _loading
                           ? const SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              'Kayıt Ol',
-                              style: TextStyle(fontSize: 16),
-                            ),
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Text('Kayıt Ol',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5)),
+                    ),
+
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Zaten hesabın var mı? ',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Giriş Yap',
+                              style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-/// Rol seçim kartı widget'ı
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final Color color;
+  const _SectionTitle(
+      {required this.title, this.color = AppColors.textPrimary});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(title,
+            style: TextStyle(
+                fontWeight: FontWeight.w600, color: color, fontSize: 14)),
+      ],
+    );
+  }
+}
+
 class _RoleCard extends StatelessWidget {
   final String label;
+  final String description;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
   const _RoleCard({
     required this.label,
+    required this.description,
     required this.icon,
     required this.selected,
     required this.onTap,
@@ -264,13 +584,14 @@ class _RoleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withOpacity(0.1)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(10),
+              ? AppColors.primary.withOpacity(0.08)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? AppColors.primary : Colors.grey.shade300,
             width: selected ? 2 : 1,
@@ -279,17 +600,25 @@ class _RoleCard extends StatelessWidget {
         child: Column(
           children: [
             Icon(icon,
-                color: selected ? AppColors.primary : AppColors.textSecondary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
+                size: 28,
                 color:
-                    selected ? AppColors.primary : AppColors.textSecondary,
-                fontWeight:
-                    selected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
+                    selected ? AppColors.primary : AppColors.textSecondary),
+            const SizedBox(height: 6),
+            Text(label,
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                    fontSize: 13)),
+            const SizedBox(height: 2),
+            Text(description,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: selected
+                        ? AppColors.primary.withOpacity(0.7)
+                        : AppColors.textLight),
+                textAlign: TextAlign.center),
           ],
         ),
       ),

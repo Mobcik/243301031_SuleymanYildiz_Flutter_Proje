@@ -55,6 +55,15 @@ class AuthService {
     required String password,
     required String fullName,
     required String role,
+    String? phone,
+    // Avukat alanları
+    String? sicilNo,
+    String? uzmanlikAlani,
+    String? baroAdi,
+    // Müvekkil alanları
+    String? tcKimlik,
+    DateTime? birthDate,
+    String? address,
   }) async {
     final response = await _supabase.auth.signUp(
       email: email,
@@ -71,6 +80,13 @@ class AuthService {
       'email': email,
       'full_name': fullName,
       'role': role,
+      if (phone != null) 'phone': phone,
+      if (sicilNo != null) 'sicil_no': sicilNo,
+      if (uzmanlikAlani != null) 'uzmanlik_alani': uzmanlikAlani,
+      if (baroAdi != null) 'baro_adi': baroAdi,
+      if (tcKimlik != null) 'tc_kimlik': tcKimlik,
+      if (birthDate != null) 'birth_date': birthDate.toIso8601String().split('T')[0],
+      if (address != null) 'address': address,
     });
 
     await _logService.log('Hesap oluşturuldu', details: 'Rol: $role');
@@ -81,6 +97,13 @@ class AuthService {
       fullName: fullName,
       role: role,
       createdAt: DateTime.now(),
+      phone: phone,
+      sicilNo: sicilNo,
+      uzmanlikAlani: uzmanlikAlani,
+      baroAdi: baroAdi,
+      tcKimlik: tcKimlik,
+      birthDate: birthDate,
+      address: address,
     );
   }
 
