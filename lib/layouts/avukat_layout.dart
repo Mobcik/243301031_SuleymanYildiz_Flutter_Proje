@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 import '../features/avukat/screens/talepler_screen.dart';
+import '../features/avukat/screens/durusmalar_screen.dart';
 
 /// Avukat rolü için ortak ekran iskeleti (AppBar + Drawer)
 class AvukatLayout extends StatelessWidget {
@@ -85,6 +86,17 @@ class AvukatLayout extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 AppRouter.goToAvukatHome(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('Duruşma Takvimi'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DurusmalarScreen()),
+                );
               },
             ),
             ListTile(

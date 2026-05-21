@@ -84,6 +84,25 @@ class CaseService {
     await _logService.log('Dava durumu güncellendi', details: 'Yeni durum: $status');
   }
 
+  /// Yaklaşan duruşmaları getirir (next_hearing_date gelecekte olan davalar)
+  Future<List<CaseModel>> getUpcomingHearings(String lawyerId) async {
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final response = await _supabase
+        .from('cases')
+        .select('*, profiles!cases_client_id_fkey(full_name)')
+        .eq('lawyer_id', lawyerId)
+        .not('next_hearing_date', 'is', null)
+        .gte('next_hearing_date', today)
+        .order('next_hearing_date');
+
+    return (response as List).map((e) {
+      final map = Map<String, dynamic>.from(e as Map);
+      final client = map['profiles'] as Map?;
+      map['client_name'] = client?['full_name'];
+      return CaseModel.fromMap(map);
+    }).toList();
+  }
+
   /// Davayı siler
   Future<void> deleteCase(String caseId) async {
     await _supabase.from('cases').delete().eq('id', caseId);
